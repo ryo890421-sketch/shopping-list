@@ -12,8 +12,8 @@
     h1 { margin: 0; font-size: clamp(1.7rem, 5vw, 2.25rem); }
     .subtitle { margin: 8px 0 28px; color: #66766b; }
     form { display: grid; grid-template-columns: 1fr 120px auto; gap: 10px; }
-    input { min-width: 0; padding: 13px 14px; font: inherit; border: 2px solid var(--line); border-radius: 12px; outline: none; }
-    input:focus { border-color: var(--green); }
+    input, textarea, select { min-width: 0; padding: 13px 14px; font: inherit; border: 2px solid var(--line); border-radius: 12px; outline: none; background: white; }
+    input:focus, textarea:focus, select:focus { border-color: var(--green); }
     button { border: 0; border-radius: 12px; padding: 12px 17px; font: inherit; font-weight: 700; cursor: pointer; }
     .add { background: var(--green); color: white; }
     .add:hover { background: #1e5d3a; }
@@ -31,6 +31,16 @@
     .delete { background: #fbeaea; color: #a04141; padding: 7px 10px; }
     .empty { padding: 28px 0; color: #66766b; text-align: center; }
     .tip { margin: 24px 0 0; font-size: .86rem; color: #66766b; }
+    .templates { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--line); }
+    .templates h2 { margin: 0 0 6px; font-size: 1.15rem; }
+    .templates p { margin: 0 0 14px; color: #66766b; font-size: .9rem; }
+    .template-picker { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; margin-bottom: 12px; }
+    .template-editor { display: grid; gap: 8px; }
+    textarea { min-height: 86px; resize: vertical; }
+    .template-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .secondary { background: #e8f2ea; color: #286241; }
+    .danger { background: transparent; color: #a04141; padding: 9px 11px; }
+    @media (max-width: 460px) { .template-picker { grid-template-columns: 1fr 1fr; } .template-picker select { grid-column: 1 / -1; } }
     @media (max-width: 460px) { main { margin: 20px auto; padding: 24px 20px; } form { grid-template-columns: 1fr 100px; } .add { grid-column: 1 / -1; width: 100%; } }
   </style>
 </head>
@@ -53,21 +63,70 @@
       </div>
     </div>
     <ul id="list"></ul>
+    <section class="templates" aria-labelledby="templates-title">
+      <h2 id="templates-title">よく買うセット</h2>
+      <p>セットを選んでまとめて追加できます。名前と食材は自由に編集できます。</p>
+      <div class="template-picker">
+        <select id="template-select" aria-label="テンプレートを選ぶ"></select>
+        <button id="add-template-items" class="secondary" type="button">リストに追加</button>
+        <button id="new-template" class="secondary" type="button">新規</button>
+      </div>
+      <div class="template-editor">
+        <input id="template-name" type="text" placeholder="セット名（例：朝食セット）" />
+        <textarea id="template-items" placeholder="食材をカンマまたは改行で区切る&#10;例：食パン、バナナ、牛乳、ヨーグルト"></textarea>
+        <div class="template-actions">
+          <button id="save-template" class="add" type="button">テンプレートを保存</button>
+          <button id="delete-template" class="danger" type="button">このテンプレートを削除</button>
+        </div>
+      </div>
+    </section>
     <p class="tip">ヒント：チェックを入れると「購入済み」になります。リストはこのブラウザに保存されます。</p>
   </main>
 
   <script>
     // リストのデータを、ブラウザの保存領域から読み込みます。
     let items = JSON.parse(localStorage.getItem('shopping-items') || '[]');
+    let templates = JSON.parse(localStorage.getItem('shopping-templates') || 'null') || [
+      { id: crypto.randomUUID(), name: '朝食セット', items: ['食パン', 'バナナ', '牛乳', 'ヨーグルト'] }
+    ];
+    let selectedTemplateId = templates[0]?.id || null;
 
     const form = document.querySelector('#add-form');
     const input = document.querySelector('#item-input');
     const quantityInput = document.querySelector('#quantity-input');
     const list = document.querySelector('#list');
     const count = document.querySelector('#count');
+    const templateSelect = document.querySelector('#template-select');
+    const templateName = document.querySelector('#template-name');
+    const templateItems = document.querySelector('#template-items');
 
     function save() {
       localStorage.setItem('shopping-items', JSON.stringify(items));
+    }
+
+    function saveTemplates() {
+      localStorage.setItem('shopping-templates', JSON.stringify(templates));
+    }
+
+    function renderTemplates() {
+      templateSelect.innerHTML = '';
+      if (templates.length === 0) {
+        templateSelect.innerHTML = '<option value="">テンプレートがありません</option>';
+        templateName.value = '';
+        templateItems.value = '';
+        return;
+      }
+      templates.forEach(template => {
+        const option = document.createElement('option');
+        option.value = template.id;
+        option.textContent = template.name;
+        templateSelect.appendChild(option);
+      });
+      const selected = templates.find(template => template.id === selectedTemplateId) || templates[0];
+      selectedTemplateId = selected.id;
+      templateSelect.value = selected.id;
+      templateName.value = selected.name;
+      templateItems.value = selected.items.join('、');
     }
 
     function render() {
@@ -133,7 +192,46 @@
       save(); render();
     });
 
-    render();
+    templateSelect.addEventListener('change', () => {
+      selectedTemplateId = templateSelect.value;
+      renderTemplates();
+    });
+
+    document.querySelector('#new-template').addEventListener('click', () => {
+      selectedTemplateId = null;
+      templateSelect.value = '';
+      templateName.value = '';
+      templateItems.value = '';
+      templateName.focus();
+    });
+
+    document.querySelector('#save-template').addEventListener('click', () => {
+      const name = templateName.value.trim();
+      const templateItemNames = templateItems.value.split(/[、,，\n]/).map(value => value.trim()).filter(Boolean);
+      if (!name || templateItemNames.length === 0) return;
+      const template = { id: selectedTemplateId || crypto.randomUUID(), name, items: templateItemNames };
+      const index = templates.findIndex(existing => existing.id === selectedTemplateId);
+      if (index >= 0) templates[index] = template;
+      else templates.push(template);
+      selectedTemplateId = template.id;
+      saveTemplates(); renderTemplates();
+    });
+
+    document.querySelector('#delete-template').addEventListener('click', () => {
+      if (!selectedTemplateId) return;
+      templates = templates.filter(template => template.id !== selectedTemplateId);
+      selectedTemplateId = templates[0]?.id || null;
+      saveTemplates(); renderTemplates();
+    });
+
+    document.querySelector('#add-template-items').addEventListener('click', () => {
+      const template = templates.find(existing => existing.id === selectedTemplateId);
+      if (!template) return;
+      template.items.forEach(name => items.push({ name, quantity: '', done: false }));
+      save(); render();
+    });
+
+    render(); renderTemplates();
   </script>
 </body>
 </html>
