@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>お買い物リスト</title>
+  <style>
+    :root { color-scheme: light; --green: #28734a; --cream: #fffaf1; --ink: #25342b; --line: #dbe6dc; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif; background: linear-gradient(135deg, #e7f3e8, #fff7e9); color: var(--ink); }
+    main { width: min(680px, calc(100% - 32px)); margin: 48px auto; padding: 32px; background: rgba(255,255,255,.92); border-radius: 24px; box-shadow: 0 16px 45px rgba(45, 78, 54, .14); }
+    h1 { margin: 0; font-size: clamp(1.7rem, 5vw, 2.25rem); }
+    .subtitle { margin: 8px 0 28px; color: #66766b; }
+    form { display: grid; grid-template-columns: 1fr 120px auto; gap: 10px; }
+    input { min-width: 0; padding: 13px 14px; font: inherit; border: 2px solid var(--line); border-radius: 12px; outline: none; }
+    input:focus { border-color: var(--green); }
+    button { border: 0; border-radius: 12px; padding: 12px 17px; font: inherit; font-weight: 700; cursor: pointer; }
+    .add { background: var(--green); color: white; }
+    .add:hover { background: #1e5d3a; }
+    .controls { display: flex; align-items: center; justify-content: space-between; margin: 28px 0 12px; }
+    .count { font-size: .92rem; color: #66766b; }
+    .clear { padding: 7px 10px; background: transparent; color: #a04141; }
+    ul { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+    li { display: flex; align-items: center; gap: 12px; padding: 15px 4px; border-bottom: 1px solid var(--line); }
+    li label { flex: 1; cursor: pointer; font-size: 1.06rem; }
+    .quantity { color: #66766b; font-size: .94rem; white-space: nowrap; }
+    li.done label { color: #87958b; text-decoration: line-through; }
+    input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--green); }
+    .delete { background: #fbeaea; color: #a04141; padding: 7px 10px; }
+    .empty { padding: 28px 0; color: #66766b; text-align: center; }
+    .tip { margin: 24px 0 0; font-size: .86rem; color: #66766b; }
+    @media (max-width: 460px) { main { margin: 20px auto; padding: 24px 20px; } form { grid-template-columns: 1fr 100px; } .add { grid-column: 1 / -1; width: 100%; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>🛒 お買い物リスト</h1>
+    <p class="subtitle">スーパーで買う食材をメモしましょう。</p>
+
+    <form id="add-form">
+      <input id="item-input" type="text" placeholder="例：牛乳" autocomplete="off" required />
+      <input id="quantity-input" type="text" placeholder="例：2本" autocomplete="off" />
+      <button class="add" type="submit">追加する</button>
+    </form>
+
+    <div class="controls">
+      <span id="count" class="count"></span>
+      <button id="clear-done" class="clear" type="button">購入済みを消す</button>
+    </div>
+    <ul id="list"></ul>
+    <p class="tip">ヒント：チェックを入れると「購入済み」になります。リストはこのブラウザに保存されます。</p>
+  </main>
+
+  <script>
+    // リストのデータを、ブラウザの保存領域から読み込みます。
+    let items = JSON.parse(localStorage.getItem('shopping-items') || '[]');
+
+    const form = document.querySelector('#add-form');
+    const input = document.querySelector('#item-input');
+    const quantityInput = document.querySelector('#quantity-input');
+    const list = document.querySelector('#list');
+    const count = document.querySelector('#count');
+
+    function save() {
+      localStorage.setItem('shopping-items', JSON.stringify(items));
+    }
+
+    function render() {
+      list.innerHTML = '';
+      const remaining = items.filter(item => !item.done).length;
+      count.textContent = `あと ${remaining} 件`;
+
+      if (items.length === 0) {
+        list.innerHTML = '<li class="empty">買うものを追加してみましょう</li>';
+        return;
+      }
+
+      items.forEach((item, index) => {
+        const row = document.createElement('li');
+        row.className = item.done ? 'done' : '';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = item.done;
+        checkbox.ariaLabel = `${item.name}を購入済みにする`;
+        const label = document.createElement('label');
+        label.textContent = item.name;
+        const quantity = document.createElement('span');
+        quantity.className = 'quantity';
+        quantity.textContent = item.quantity || '';
+        const deleteButton = document.createElement('button');
+        deleteButton.className = 'delete';
+        deleteButton.type = 'button';
+        deleteButton.textContent = '削除';
+        row.append(checkbox, label, quantity, deleteButton);
+        checkbox.addEventListener('change', () => {
+          items[index].done = !items[index].done;
+          save(); render();
+        });
+        deleteButton.addEventListener('click', () => {
+          items.splice(index, 1);
+          save(); render();
+        });
+        list.appendChild(row);
+      });
+    }
+
+    // 入力した食材をリストに追加します。
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      const name = input.value.trim();
+      const quantity = quantityInput.value.trim();
+      if (!name) return;
+      items.push({ name, quantity, done: false });
+      save(); render();
+      input.value = '';
+      quantityInput.value = '';
+      input.focus();
+    });
+
+    document.querySelector('#clear-done').addEventListener('click', () => {
+      items = items.filter(item => !item.done);
+      save(); render();
+    });
+
+    render();
+  </script>
+</body>
+</html>
