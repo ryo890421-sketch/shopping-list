@@ -19,6 +19,8 @@
     .add:hover { background: #1e5d3a; }
     .controls { display: flex; align-items: center; justify-content: space-between; margin: 28px 0 12px; }
     .count { font-size: .92rem; color: #66766b; }
+    .actions { display: flex; gap: 4px; }
+    .reset { padding: 7px 10px; background: transparent; color: #396a4b; }
     .clear { padding: 7px 10px; background: transparent; color: #a04141; }
     ul { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
     li { display: flex; align-items: center; gap: 12px; padding: 15px 4px; border-bottom: 1px solid var(--line); }
@@ -45,7 +47,10 @@
 
     <div class="controls">
       <span id="count" class="count"></span>
-      <button id="clear-done" class="clear" type="button">購入済みを消す</button>
+      <div class="actions">
+        <button id="reset-checks" class="reset" type="button">全て未購入に戻す</button>
+        <button id="clear-done" class="clear" type="button">購入済みを消す</button>
+      </div>
     </div>
     <ul id="list"></ul>
     <p class="tip">ヒント：チェックを入れると「購入済み」になります。リストはこのブラウザに保存されます。</p>
@@ -119,6 +124,12 @@
 
     document.querySelector('#clear-done').addEventListener('click', () => {
       items = items.filter(item => !item.done);
+      save(); render();
+    });
+
+    // 次の買い物用に、食材を残したままチェックだけ外します。
+    document.querySelector('#reset-checks').addEventListener('click', () => {
+      items.forEach(item => { item.done = false; });
       save(); render();
     });
 
