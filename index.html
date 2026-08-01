@@ -41,6 +41,13 @@
     .template-actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .secondary { background: #e8f2ea; color: #286241; }
     .danger { background: transparent; color: #a04141; padding: 9px 11px; }
+    .share { margin: 20px 0 0; padding: 16px; background: #f0f7f1; border-radius: 14px; }
+    .share h2 { margin: 0 0 5px; font-size: 1rem; }
+    .share p { margin: 0 0 10px; font-size: .88rem; color: #52675a; }
+    .share-row { display: flex; gap: 8px; }
+    .share-row input { flex: 1; padding: 10px; font-size: .8rem; }
+    .share-row button { padding: 10px 12px; white-space: nowrap; }
+    .sync-status { margin: 8px 0 0; font-size: .8rem; color: #52675a; }
     @media (max-width: 460px) { .template-picker { grid-template-columns: 1fr 1fr; } .template-picker select { grid-column: 1 / -1; } }
     @media (max-width: 460px) { main { margin: 20px auto; padding: 24px 20px; } form { grid-template-columns: 1fr 100px; } .add { grid-column: 1 / -1; width: 100%; } }
   </style>
@@ -65,6 +72,15 @@
       </div>
     </div>
     <ul id="list"></ul>
+    <section class="share" aria-labelledby="share-title">
+      <h2 id="share-title">夫婦で共有</h2>
+      <p>このリンクを相手に送ると、同じリストをリアルタイムで使えます。</p>
+      <div class="share-row">
+        <input id="share-link" type="text" readonly aria-label="共有リンク" />
+        <button id="copy-share-link" class="secondary" type="button">リンクをコピー</button>
+      </div>
+      <p id="sync-status" class="sync-status">共有の準備中…</p>
+    </section>
     <section class="templates" aria-labelledby="templates-title">
       <h2 id="templates-title">よく買うセット</h2>
       <p>セットを選んでまとめて追加できます。名前と食材は自由に編集できます。</p>
@@ -82,16 +98,31 @@
         </div>
       </div>
     </section>
-    <p class="tip">ヒント：チェックを入れると「購入済み」になります。リストはこのブラウザに保存されます。</p>
+    <p class="tip">ヒント：チェックを入れると「購入済み」になります。共有リンクは信頼できる相手だけに送ってください。</p>
   </main>
 
-  <script>
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js';
+    import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js';
+    import { getFirestore, doc, onSnapshot, setDoc } from 'https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js';
+
+    const firebaseConfig = {
+      apiKey: 'AIzaSyD2rBCGiIzyLg-dWT2nIzscIcDoFsMcP5A',
+      authDomain: 'shared-shopping-list-6b237.firebaseapp.com',
+      projectId: 'shared-shopping-list-6b237',
+      storageBucket: 'shared-shopping-list-6b237.firebasestorage.app',
+      messagingSenderId: '129791146702',
+      appId: '1:129791146702:web:d290de5a44a45d2fb86e9f'
+    };
+
     // リストのデータを、ブラウザの保存領域から読み込みます。
     let items = JSON.parse(localStorage.getItem('shopping-items') || '[]');
     let templates = JSON.parse(localStorage.getItem('shopping-templates') || 'null') || [
       { id: crypto.randomUUID(), name: '朝食セット', items: ['食パン', 'バナナ', '牛乳', 'ヨーグルト'] }
     ];
     let selectedTemplateId = templates[0]?.id || null;
+    let listRef;
+    let syncReady = false;
 
     const form = document.querySelector('#add-form');
     const input = document.querySelector('#item-input');
@@ -101,13 +132,60 @@
     const templateSelect = document.querySelector('#template-select');
     const templateName = document.querySelector('#template-name');
     const templateItems = document.querySelector('#template-items');
+    const shareLink = document.querySelector('#share-link');
+    const syncStatus = document.querySelector('#sync-status');
 
     function save() {
       localStorage.setItem('shopping-items', JSON.stringify(items));
+      saveSharedList();
     }
 
     function saveTemplates() {
       localStorage.setItem('shopping-templates', JSON.stringify(templates));
+      saveSharedList();
+    }
+
+    function saveSharedList() {
+      if (!syncReady || !listRef) return;
+      setDoc(listRef, { items, templates, updatedAt: Date.now() })
+        .then(() => { syncStatus.textContent = '✓ 夫婦でリアルタイム共有中'; })
+        .catch(() => { syncStatus.textContent = '同期できませんでした。ページを開き直してください。'; });
+    }
+
+    async function startSharing() {
+      const url = new URL(location.href);
+      if (!url.searchParams.get('list')) {
+        url.searchParams.set('list', crypto.randomUUID());
+        history.replaceState({}, '', url);
+      }
+      shareLink.value = location.href;
+      try {
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        await signInAnonymously(auth);
+        const db = getFirestore(app);
+        listRef = doc(db, 'sharedLists', new URL(location.href).searchParams.get('list'));
+        onSnapshot(listRef, snapshot => {
+          if (snapshot.exists()) {
+            const data = snapshot.data();
+            items = Array.isArray(data.items) ? data.items : [];
+            templates = Array.isArray(data.templates) ? data.templates : templates;
+            selectedTemplateId = templates[0]?.id || null;
+            localStorage.setItem('shopping-items', JSON.stringify(items));
+            localStorage.setItem('shopping-templates', JSON.stringify(templates));
+            render(); renderTemplates();
+          } else {
+            syncReady = true;
+            saveSharedList();
+          }
+          syncReady = true;
+          syncStatus.textContent = '✓ 夫婦でリアルタイム共有中';
+        }, () => {
+          syncStatus.textContent = '同期できませんでした。共有設定を確認してください。';
+        });
+      } catch {
+        syncStatus.textContent = '共有の接続に失敗しました。ページを開き直してください。';
+      }
     }
 
     function renderTemplates() {
@@ -238,7 +316,19 @@
       save(); render();
     });
 
+    document.querySelector('#copy-share-link').addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(shareLink.value);
+        syncStatus.textContent = '共有リンクをコピーしました。LINEなどで相手に送ってください。';
+      } catch {
+        shareLink.select();
+        document.execCommand('copy');
+        syncStatus.textContent = '共有リンクをコピーしました。';
+      }
+    });
+
     render(); renderTemplates();
+    startSharing();
   </script>
 </body>
 </html>
