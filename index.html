@@ -90,7 +90,7 @@
       </div>
     </section>
     <section class="share" aria-labelledby="share-title">
-      <h2 id="share-title">夫婦で共有</h2>
+      <h2 id="share-title">家族で共有</h2>
       <p>このリンクを相手に送ると、同じリストをリアルタイムで使えます。</p>
       <div class="share-row">
         <input id="share-link" type="text" readonly aria-label="共有リンク" />
@@ -148,7 +148,7 @@
     function saveSharedList() {
       if (!syncReady || !listRef) return;
       setDoc(listRef, { items, templates, updatedAt: Date.now() })
-        .then(() => { syncStatus.textContent = '✓ 夫婦でリアルタイム共有中'; })
+        .then(() => { syncStatus.textContent = '✓ 家族でリアルタイム共有中'; })
         .catch(() => { syncStatus.textContent = '同期できませんでした。ページを開き直してください。'; });
     }
 
@@ -179,7 +179,7 @@
             saveSharedList();
           }
           syncReady = true;
-          syncStatus.textContent = '✓ 夫婦でリアルタイム共有中';
+          syncStatus.textContent = '✓ 家族でリアルタイム共有中';
         }, () => {
           syncStatus.textContent = '同期できませんでした。共有設定を確認してください。';
         });
