@@ -1,1 +1,334 @@
-<!doctype html><html lang="ja"><head>  <meta charset="UTF-8" />  <meta name="viewport" content="width=device-width, initial-scale=1.0" />  <title>買い物リスト</title>  <style>    :root { color-scheme: light; --green: #28734a; --cream: #fffaf1; --ink: #25342b; --line: #dbe6dc; }    * { box-sizing: border-box; }    body { margin: 0; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif; background: linear-gradient(135deg, #e7f3e8, #fff7e9); color: var(--ink); }    main { width: min(680px, calc(100% - 32px)); margin: 48px auto; padding: 32px; background: rgba(255,255,255,.92); border-radius: 24px; box-shadow: 0 16px 45px rgba(45, 78, 54, .14); }    h1 { margin: 0; font-size: clamp(1.7rem, 5vw, 2.25rem); }    .subtitle { margin: 8px 0 28px; color: #66766b; }    form { display: grid; grid-template-columns: 1fr 120px auto; gap: 10px; }    input, textarea, select { min-width: 0; padding: 13px 14px; font: inherit; border: 2px solid var(--line); border-radius: 12px; outline: none; background: white; }    input:focus, textarea:focus, select:focus { border-color: var(--green); }    button { border: 0; border-radius: 12px; padding: 12px 17px; font: inherit; font-weight: 700; cursor: pointer; }    .add { background: var(--green); color: white; }    .add:hover { background: #1e5d3a; }    .controls { display: flex; align-items: center; justify-content: space-between; margin: 28px 0 12px; }    .count { font-size: .92rem; color: #66766b; }    .actions { display: flex; gap: 4px; }    .complete { padding: 7px 10px; background: transparent; color: #28734a; }    .reset { padding: 7px 10px; background: transparent; color: #396a4b; }    .clear { padding: 7px 10px; background: transparent; color: #a04141; }    ul { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }    li { display: flex; align-items: center; gap: 12px; padding: 15px 4px; border-bottom: 1px solid var(--line); }    li label { flex: 1; cursor: pointer; font-size: 1.06rem; }    .quantity { color: #66766b; font-size: .94rem; white-space: nowrap; }    li.done label { color: #87958b; text-decoration: line-through; }    input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--green); }    .delete { background: #fbeaea; color: #a04141; padding: 7px 10px; }    .empty { padding: 28px 0; color: #66766b; text-align: center; }    .tip { margin: 24px 0 0; font-size: .86rem; color: #66766b; }    .templates { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--line); }    .templates h2 { margin: 0 0 6px; font-size: 1.15rem; }
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>買い物リスト</title>
+  <style>
+    :root { color-scheme: light; --green: #28734a; --cream: #fffaf1; --ink: #25342b; --line: #dbe6dc; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif; background: linear-gradient(135deg, #e7f3e8, #fff7e9); color: var(--ink); }
+    main { width: min(680px, calc(100% - 32px)); margin: 48px auto; padding: 32px; background: rgba(255,255,255,.92); border-radius: 24px; box-shadow: 0 16px 45px rgba(45, 78, 54, .14); }
+    h1 { margin: 0; font-size: clamp(1.7rem, 5vw, 2.25rem); }
+    .subtitle { margin: 8px 0 28px; color: #66766b; }
+    form { display: grid; grid-template-columns: 1fr 120px auto; gap: 10px; }
+    input, textarea, select { min-width: 0; padding: 13px 14px; font: inherit; border: 2px solid var(--line); border-radius: 12px; outline: none; background: white; }
+    input:focus, textarea:focus, select:focus { border-color: var(--green); }
+    button { border: 0; border-radius: 12px; padding: 12px 17px; font: inherit; font-weight: 700; cursor: pointer; }
+    .add { background: var(--green); color: white; }
+    .add:hover { background: #1e5d3a; }
+    .controls { display: flex; align-items: center; justify-content: space-between; margin: 28px 0 12px; }
+    .count { font-size: .92rem; color: #66766b; }
+    .actions { display: flex; gap: 4px; }
+    .complete { padding: 7px 10px; background: transparent; color: #28734a; }
+    .reset { padding: 7px 10px; background: transparent; color: #396a4b; }
+    .clear { padding: 7px 10px; background: transparent; color: #a04141; }
+    ul { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+    li { display: flex; align-items: center; gap: 12px; padding: 15px 4px; border-bottom: 1px solid var(--line); }
+    li label { flex: 1; cursor: pointer; font-size: 1.06rem; }
+    .quantity { color: #66766b; font-size: .94rem; white-space: nowrap; }
+    li.done label { color: #87958b; text-decoration: line-through; }
+    input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--green); }
+    .delete { background: #fbeaea; color: #a04141; padding: 7px 10px; }
+    .empty { padding: 28px 0; color: #66766b; text-align: center; }
+    .tip { margin: 24px 0 0; font-size: .86rem; color: #66766b; }
+    .templates { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--line); }
+    .templates h2 { margin: 0 0 6px; font-size: 1.15rem; }
+    .templates p { margin: 0 0 14px; color: #66766b; font-size: .9rem; }
+    .template-picker { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; margin-bottom: 12px; }
+    .template-editor { display: grid; gap: 8px; }
+    textarea { min-height: 86px; resize: vertical; }
+    .template-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .secondary { background: #e8f2ea; color: #286241; }
+    .danger { background: transparent; color: #a04141; padding: 9px 11px; }
+    .share { margin: 20px 0 0; padding: 16px; background: #f0f7f1; border-radius: 14px; }
+    .share h2 { margin: 0 0 5px; font-size: 1rem; }
+    .share p { margin: 0 0 10px; font-size: .88rem; color: #52675a; }
+    .share-row { display: flex; gap: 8px; }
+    .share-row input { flex: 1; padding: 10px; font-size: .8rem; }
+    .share-row button { padding: 10px 12px; white-space: nowrap; }
+    .sync-status { margin: 8px 0 0; font-size: .8rem; color: #52675a; }
+    @media (max-width: 460px) { .template-picker { grid-template-columns: 1fr 1fr; } .template-picker select { grid-column: 1 / -1; } }
+    @media (max-width: 460px) { main { margin: 20px auto; padding: 24px 20px; } form { grid-template-columns: 1fr 100px; } .add { grid-column: 1 / -1; width: 100%; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>🛒 買い物リスト</h1>
+    <p class="subtitle">スーパーで買う食材をメモしましょう。</p>
+
+    <form id="add-form">
+      <input id="item-input" type="text" placeholder="例：牛乳" autocomplete="off" required />
+      <input id="quantity-input" type="text" placeholder="例：2本" autocomplete="off" />
+      <button class="add" type="submit">追加する</button>
+    </form>
+
+    <div class="controls">
+      <span id="count" class="count"></span>
+      <div class="actions">
+        <button id="complete-all" class="complete" type="button">全て購入済みにする</button>
+        <button id="reset-checks" class="reset" type="button">全て未購入に戻す</button>
+        <button id="clear-done" class="clear" type="button">購入済みを消す</button>
+      </div>
+    </div>
+    <ul id="list"></ul>
+    <section class="templates" aria-labelledby="templates-title">
+      <h2 id="templates-title">よく買うセット</h2>
+      <p>セットを選んでまとめて追加できます。名前と食材は自由に編集できます。</p>
+      <div class="template-picker">
+        <select id="template-select" aria-label="テンプレートを選ぶ"></select>
+        <button id="add-template-items" class="secondary" type="button">リストに追加</button>
+        <button id="new-template" class="secondary" type="button">新規</button>
+      </div>
+      <div class="template-editor">
+        <input id="template-name" type="text" placeholder="セット名（例：朝食セット）" />
+        <textarea id="template-items" placeholder="食材をカンマまたは改行で区切る&#10;例：食パン、バナナ、牛乳、ヨーグルト"></textarea>
+        <div class="template-actions">
+          <button id="save-template" class="add" type="button">テンプレートを保存</button>
+          <button id="delete-template" class="danger" type="button">このテンプレートを削除</button>
+        </div>
+      </div>
+    </section>
+    <section class="share" aria-labelledby="share-title">
+      <h2 id="share-title">家族で共有</h2>
+      <p>このリンクを相手に送ると、同じリストをリアルタイムで使えます。</p>
+      <div class="share-row">
+        <input id="share-link" type="text" readonly aria-label="共有リンク" />
+        <button id="copy-share-link" class="secondary" type="button">リンクをコピー</button>
+      </div>
+      <p id="sync-status" class="sync-status">共有の準備中…</p>
+    </section>
+    <p class="tip">ヒント：チェックを入れると「購入済み」になります。共有リンクは信頼できる相手だけに送ってください。</p>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js';
+    import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js';
+    import { getFirestore, doc, onSnapshot, setDoc } from 'https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js';
+
+    const firebaseConfig = {
+      apiKey: 'AIzaSyD2rBCGiIzyLg-dWT2nIzscIcDoFsMcP5A',
+      authDomain: 'shared-shopping-list-6b237.firebaseapp.com',
+      projectId: 'shared-shopping-list-6b237',
+      storageBucket: 'shared-shopping-list-6b237.firebasestorage.app',
+      messagingSenderId: '129791146702',
+      appId: '1:129791146702:web:d290de5a44a45d2fb86e9f'
+    };
+
+    // リストのデータを、ブラウザの保存領域から読み込みます。
+    let items = JSON.parse(localStorage.getItem('shopping-items') || '[]');
+    let templates = JSON.parse(localStorage.getItem('shopping-templates') || 'null') || [
+      { id: crypto.randomUUID(), name: '朝食セット', items: ['食パン', 'バナナ', '牛乳', 'ヨーグルト'] }
+    ];
+    let selectedTemplateId = templates[0]?.id || null;
+    let listRef;
+    let syncReady = false;
+
+    const form = document.querySelector('#add-form');
+    const input = document.querySelector('#item-input');
+    const quantityInput = document.querySelector('#quantity-input');
+    const list = document.querySelector('#list');
+    const count = document.querySelector('#count');
+    const templateSelect = document.querySelector('#template-select');
+    const templateName = document.querySelector('#template-name');
+    const templateItems = document.querySelector('#template-items');
+    const shareLink = document.querySelector('#share-link');
+    const syncStatus = document.querySelector('#sync-status');
+
+    function save() {
+      localStorage.setItem('shopping-items', JSON.stringify(items));
+      saveSharedList();
+    }
+
+    function saveTemplates() {
+      localStorage.setItem('shopping-templates', JSON.stringify(templates));
+      saveSharedList();
+    }
+
+    function saveSharedList() {
+      if (!syncReady || !listRef) return;
+      setDoc(listRef, { items, templates, updatedAt: Date.now() })
+        .then(() => { syncStatus.textContent = '✓ 家族でリアルタイム共有中'; })
+        .catch(() => { syncStatus.textContent = '同期できませんでした。ページを開き直してください。'; });
+    }
+
+    async function startSharing() {
+      const url = new URL(location.href);
+      if (!url.searchParams.get('list')) {
+        url.searchParams.set('list', crypto.randomUUID());
+        history.replaceState({}, '', url);
+      }
+      shareLink.value = location.href;
+      try {
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        await signInAnonymously(auth);
+        const db = getFirestore(app);
+        listRef = doc(db, 'sharedLists', new URL(location.href).searchParams.get('list'));
+        onSnapshot(listRef, snapshot => {
+          if (snapshot.exists()) {
+            const data = snapshot.data();
+            items = Array.isArray(data.items) ? data.items : [];
+            templates = Array.isArray(data.templates) ? data.templates : templates;
+            selectedTemplateId = templates[0]?.id || null;
+            localStorage.setItem('shopping-items', JSON.stringify(items));
+            localStorage.setItem('shopping-templates', JSON.stringify(templates));
+            render(); renderTemplates();
+          } else {
+            syncReady = true;
+            saveSharedList();
+          }
+          syncReady = true;
+          syncStatus.textContent = '✓ 家族でリアルタイム共有中';
+        }, () => {
+          syncStatus.textContent = '同期できませんでした。共有設定を確認してください。';
+        });
+      } catch {
+        syncStatus.textContent = '共有の接続に失敗しました。ページを開き直してください。';
+      }
+    }
+
+    function renderTemplates() {
+      templateSelect.innerHTML = '';
+      if (templates.length === 0) {
+        templateSelect.innerHTML = '<option value="">テンプレートがありません</option>';
+        templateName.value = '';
+        templateItems.value = '';
+        return;
+      }
+      templates.forEach(template => {
+        const option = document.createElement('option');
+        option.value = template.id;
+        option.textContent = template.name;
+        templateSelect.appendChild(option);
+      });
+      const selected = templates.find(template => template.id === selectedTemplateId) || templates[0];
+      selectedTemplateId = selected.id;
+      templateSelect.value = selected.id;
+      templateName.value = selected.name;
+      templateItems.value = selected.items.join('、');
+    }
+
+    function render() {
+      list.innerHTML = '';
+      const remaining = items.filter(item => !item.done).length;
+      count.textContent = `あと ${remaining} 件`;
+
+      if (items.length === 0) {
+        list.innerHTML = '<li class="empty">買うものを追加してみましょう</li>';
+        return;
+      }
+
+      items.forEach((item, index) => {
+        const row = document.createElement('li');
+        row.className = item.done ? 'done' : '';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = item.done;
+        checkbox.ariaLabel = `${item.name}を購入済みにする`;
+        const label = document.createElement('label');
+        label.textContent = item.name;
+        const quantity = document.createElement('span');
+        quantity.className = 'quantity';
+        quantity.textContent = item.quantity || '';
+        const deleteButton = document.createElement('button');
+        deleteButton.className = 'delete';
+        deleteButton.type = 'button';
+        deleteButton.textContent = '削除';
+        row.append(checkbox, label, quantity, deleteButton);
+        checkbox.addEventListener('change', () => {
+          items[index].done = !items[index].done;
+          save(); render();
+        });
+        deleteButton.addEventListener('click', () => {
+          items.splice(index, 1);
+          save(); render();
+        });
+        list.appendChild(row);
+      });
+    }
+
+    // 入力した食材をリストに追加します。
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      const name = input.value.trim();
+      const quantity = quantityInput.value.trim();
+      if (!name) return;
+      items.push({ name, quantity, done: false });
+      save(); render();
+      input.value = '';
+      quantityInput.value = '';
+      input.focus();
+    });
+
+    document.querySelector('#clear-done').addEventListener('click', () => {
+      items = items.filter(item => !item.done);
+      save(); render();
+    });
+
+    // 次の買い物用に、食材を残したままチェックだけ外します。
+    document.querySelector('#reset-checks').addEventListener('click', () => {
+      items.forEach(item => { item.done = false; });
+      save(); render();
+    });
+
+    document.querySelector('#complete-all').addEventListener('click', () => {
+      items.forEach(item => { item.done = true; });
+      save(); render();
+    });
+
+    templateSelect.addEventListener('change', () => {
+      selectedTemplateId = templateSelect.value;
+      renderTemplates();
+    });
+
+    document.querySelector('#new-template').addEventListener('click', () => {
+      selectedTemplateId = null;
+      templateSelect.value = '';
+      templateName.value = '';
+      templateItems.value = '';
+      templateName.focus();
+    });
+
+    document.querySelector('#save-template').addEventListener('click', () => {
+      const name = templateName.value.trim();
+      const templateItemNames = templateItems.value.split(/[、,，\n]/).map(value => value.trim()).filter(Boolean);
+      if (!name || templateItemNames.length === 0) return;
+      const template = { id: selectedTemplateId || crypto.randomUUID(), name, items: templateItemNames };
+      const index = templates.findIndex(existing => existing.id === selectedTemplateId);
+      if (index >= 0) templates[index] = template;
+      else templates.push(template);
+      selectedTemplateId = template.id;
+      saveTemplates(); renderTemplates();
+    });
+
+    document.querySelector('#delete-template').addEventListener('click', () => {
+      if (!selectedTemplateId) return;
+      templates = templates.filter(template => template.id !== selectedTemplateId);
+      selectedTemplateId = templates[0]?.id || null;
+      saveTemplates(); renderTemplates();
+    });
+
+    document.querySelector('#add-template-items').addEventListener('click', () => {
+      const template = templates.find(existing => existing.id === selectedTemplateId);
+      if (!template) return;
+      template.items.forEach(name => items.push({ name, quantity: '', done: false }));
+      save(); render();
+    });
+
+    document.querySelector('#copy-share-link').addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(shareLink.value);
+        syncStatus.textContent = '共有リンクをコピーしました。LINEなどで相手に送ってください。';
+      } catch {
+        shareLink.select();
+        document.execCommand('copy');
+        syncStatus.textContent = '共有リンクをコピーしました。';
+      }
+    });
+
+    render(); renderTemplates();
+    startSharing();
+  </script>
+</body>
+</html>
